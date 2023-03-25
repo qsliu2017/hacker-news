@@ -6,8 +6,7 @@ interface Props {
 }
 
 interface State {
-  topStories: IHackerNewsItem[];
-  loading: boolean;
+  topStories: (IHackerNewsItem | null)[];
 }
 
 class HackerNewsTopStories extends Component<Props, State> {
@@ -18,7 +17,6 @@ class HackerNewsTopStories extends Component<Props, State> {
 
     this.state = {
       topStories: [],
-      loading: true,
     };
 
     this.api = new HackerNewsAPI();
@@ -26,23 +24,22 @@ class HackerNewsTopStories extends Component<Props, State> {
 
   async componentDidMount() {
     const { maxItems } = this.props;
-    const topStoryIds = await this.api.getTopStories();
-    const topStories = await Promise.all(
-      topStoryIds.slice(0, maxItems).map((storyId) => this.api.getItem(storyId))
-    );
-    this.setState({ topStories, loading: false });
+    const topStoryIds = (await this.api.getTopStories()).slice(0, maxItems);
+    this.setState({ topStories: topStoryIds.map(() => null) });
+    topStoryIds.forEach(async (storyId, index) => {
+      const story = await this.api.getItem(storyId);
+      const { topStories } = this.state;
+      topStories[index] = story;
+      this.setState({ topStories });
+    });
   }
 
   render() {
-    const { topStories, loading } = this.state;
-
-    if (loading) {
-      return <div>Loading...</div>;
-    }
+    const { topStories } = this.state;
 
     return (
       <ul>
-        {topStories.map((story) => (
+        {topStories.map((story) => story && (
           <li key={story.id}>
             <a href={story.url}>{story.title}</a> - {story.score} points by {story.by}
           </li>
