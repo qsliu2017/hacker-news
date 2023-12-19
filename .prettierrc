@@ -1,0 +1,9 @@
+{
+  "jsxSingleQuote": true,
+  "singleQuote": true,
+  "bracketSameLine": false,
+  "arrowParens": "avoid",
+  "printWidth": 150,
+  "htmlWhitespaceSensitivity": "ignore",
+  "plugins": ["prettier-plugin-tailwindcss"]
+}
