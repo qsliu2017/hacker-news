@@ -5,19 +5,19 @@ import { useEffect, useState } from 'react';
 import CommentList from './CommentList';
 import { Story, fetchAs } from './items';
 
-export default function StoryList({ ids }: { ids: number[] }) {
+export default function StoryList({ ids, active }: { ids: number[]; active: number }) {
   return (
     <ul className='flex flex-col gap-4'>
-      {ids.map(id => (
+      {ids.map((id, index) => (
         <li key={id.toString()}>
-          <StoryListItem id={id} />
+          <StoryListItem id={id} active={index === active} />
         </li>
       ))}
     </ul>
   );
 }
 
-function StoryListItem({ id }: { id: number }) {
+function StoryListItem({ id, active }: { id: number; active: boolean }) {
   const [story, setStory] = useState<Story | null>(null);
   const [open, setOpen] = useState(false);
   useEffect(() => {
@@ -36,7 +36,7 @@ function StoryListItem({ id }: { id: number }) {
     hour12: false,
   });
   return (
-    <Collapsible disabled={!(kids?.length > 0)} open={open} onOpenChange={setOpen}>
+    <Collapsible disabled={!(kids?.length > 0)} open={open} onOpenChange={setOpen} className={active ? 'bg-slate-500' : ''}>
       <div className='flex justify-between'>
         <p>
           <CollapsibleTrigger>

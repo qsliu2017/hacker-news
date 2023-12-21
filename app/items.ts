@@ -49,3 +49,5 @@ export type Comment = {
   time: number;
   type: string;
 };
+
+export type Item = Story | Comment;
