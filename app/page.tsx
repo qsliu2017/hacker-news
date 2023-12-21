@@ -28,7 +28,6 @@ export default function Home() {
       .then(res => res.json())
       .then(json => json as number[])
       .then(ids => setStack([{ ids: ids.slice(0, 40), active: 0 }]));
-    window.onscroll = e => e.preventDefault();
   }, []);
 
   useEffect(() => {
@@ -44,7 +43,7 @@ export default function Home() {
           setStack([...stack.slice(0, -1), { ids, active: Math.min(active + 1, ids.length - 1) }]);
           break;
         case 'ArrowLeft':
-          setStack([stack.at(0)!, ...stack.slice(1, -1)]);
+          setStack([...stack.slice(0, 1), ...stack.slice(1, -1)]);
           break;
         case 'ArrowRight':
           const id = ids[active];
@@ -60,15 +59,28 @@ export default function Home() {
     };
   }, [stack]);
 
+  const listElement = useRef<HTMLOListElement>(null);
+  useEffect(() => {
+    if (stack.length === 0) return;
+    const lastListElement = listElement.current?.children[stack.length - 1] as HTMLElement;
+    const { offsetWidth: lastListWidth } = lastListElement!;
+    const { offsetWidth: containerWidth } = listElement.current!;
+    const windowWidth = window.innerWidth;
+    // make last element center
+    listElement.current?.setAttribute('style', `transition: left 0.2s; left: ${windowWidth - lastListWidth / 2 - containerWidth}px`);
+  }, [stack.length]);
+
   if (stack.length === 0) return <div>Loading</div>;
   return (
     <QueryClientProvider client={queryClient}>
-      <main className='flex h-screen w-screen justify-end'>
-        {stack.map(({ ids, active }, index) => (
-          <div className='overflow-overflow w-96' key={index}>
-            <ItemList ids={ids} active={active} />
-          </div>
-        ))}
+      <main className='h-screen w-screen overflow-hidden'>
+        <ol className='relative flex h-full w-fit gap-2' ref={listElement}>
+          {stack.map(({ ids, active }, index) => (
+            <li className='w-[500px] overflow-hidden border-x border-slate-400' key={index}>
+              <ItemList ids={ids} active={active} />
+            </li>
+          ))}
+        </ol>
       </main>
     </QueryClientProvider>
   );
@@ -87,7 +99,7 @@ function ItemList({ ids, active }: { ids: number[]; active: number }) {
   }, [active]);
 
   return (
-    <ul className='relative flex flex-col gap-4 transition' ref={listElement}>
+    <ul className='relative flex flex-col gap-4' ref={listElement}>
       {ids.map((id, index) => (
         <li key={index} className={'group' + (index === active ? ' active' : '')}>
           <Item id={id} />
@@ -131,7 +143,9 @@ function StoryItem({ story }: { story: Story }) {
         href={url}
         dangerouslySetInnerHTML={{ __html: title }}
       />
-      <time dateTime={unixTime.toISOString()}>{localeTime}</time>
+      <time className='flex-shrink-0' dateTime={unixTime.toISOString()}>
+        {localeTime}
+      </time>
     </div>
   );
 }
@@ -139,7 +153,7 @@ function StoryItem({ story }: { story: Story }) {
 function CommentItem({ comment }: { comment: Comment }) {
   const { text, kids } = comment;
   return (
-    <div className='flex items-start gap-1 group-[.active]:bg-slate-400'>
+    <div className='flex items-start gap-1 group-[.active]:bg-slate-400 group-[.active]:text-xl' style={{ transition: 'font-size 0.1s' }}>
       <div dangerouslySetInnerHTML={{ __html: text }} />
     </div>
   );
