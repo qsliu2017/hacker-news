@@ -10,12 +10,13 @@
     "format": "prettier --write ."
   },
   "dependencies": {
-    "@radix-ui/react-collapsible": "^1.0.3",
+    "@tanstack/react-query": "^5.14.2",
     "next": "14.0.4",
     "react": "^18",
     "react-dom": "^18"
   },
   "devDependencies": {
+    "@tanstack/eslint-plugin-query": "^5.12.1",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",

@@ -25,7 +25,7 @@ export type Story = {
   score: number;
   time: number;
   title: string;
-  type: string;
+  type: 'story';
   url: string;
 };
 
@@ -47,7 +47,7 @@ export type Comment = {
   parent: number;
   text: string;
   time: number;
-  type: string;
+  type: 'comment';
 };
 
 export type Item = Story | Comment;
