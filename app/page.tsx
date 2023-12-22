@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { Comment, Item, Story, fetchAs } from './items';
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Comment, Item, Story, fetchAs } from './items';
 
 type IdList = {
   ids: number[];
@@ -34,6 +34,7 @@ export default function Home() {
     const old = window.onkeydown;
     window.onkeydown = e => {
       e.preventDefault();
+      old?.apply(window, [e]);
       const { active, ids } = stack.at(-1)!;
       switch (e.key) {
         case 'ArrowUp':
@@ -60,14 +61,29 @@ export default function Home() {
   }, [stack]);
 
   const listElement = useRef<HTMLOListElement>(null);
-  useEffect(() => {
-    if (stack.length === 0) return;
-    const lastListElement = listElement.current?.children[stack.length - 1] as HTMLElement;
+  const centeralizeLastLevelList = useCallback((lastLevel: number) => {
+    if (lastLevel < 0) return;
+    const lastListElement = listElement.current?.children[lastLevel] as HTMLElement;
     const { offsetWidth: lastListWidth } = lastListElement!;
     const { offsetWidth: containerWidth } = listElement.current!;
     const windowWidth = window.innerWidth;
-    // make last element center
+    const oldStyle = listElement.current?.getAttribute('style');
     listElement.current?.setAttribute('style', `transition: left 0.2s; left: ${windowWidth - lastListWidth / 2 - containerWidth}px`);
+    return () => {
+      oldStyle && listElement.current?.setAttribute('style', oldStyle);
+    };
+  }, []);
+
+  useEffect(() => centeralizeLastLevelList(stack.length - 1), [stack.length]);
+  useEffect(() => {
+    const old = window.onresize;
+    window.onresize = e => {
+      old?.apply(window, [e]);
+      centeralizeLastLevelList(stack.length - 1);
+    };
+    return () => {
+      window.onresize = old;
+    };
   }, [stack.length]);
 
   if (stack.length === 0) return <div>Loading</div>;
@@ -88,15 +104,30 @@ export default function Home() {
 
 function ItemList({ ids, active }: { ids: number[]; active: number }) {
   const listElement = useRef<HTMLUListElement>(null);
-
-  useEffect(() => {
-    // set top as the offset of the active element
+  const centeralizeActiveItem = useCallback((active: number) => {
     const activeElement = listElement.current?.children[active] as HTMLElement;
     const { offsetHeight, offsetTop } = activeElement!;
     const windowHeight = window.innerHeight;
-    // use transition to animate the scroll
+    const oldStyle = listElement.current?.getAttribute('style');
     listElement.current?.setAttribute('style', `transition: top 0.2s; top: ${windowHeight / 2 - offsetHeight / 2 - offsetTop}px`);
+    return () => {
+      oldStyle && listElement.current?.setAttribute('style', oldStyle);
+    };
+  }, []);
+
+  useEffect(() => {
+    centeralizeActiveItem(active);
   }, [active]);
+  useEffect(() => {
+    const old = window.onresize;
+    window.onresize = e => {
+      old?.apply(window, [e]);
+      centeralizeActiveItem(active);
+    };
+    return () => {
+      window.onresize = old;
+    };
+  }, []);
 
   return (
     <ul className='relative flex flex-col gap-4' ref={listElement}>
