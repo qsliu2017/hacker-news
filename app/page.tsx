@@ -27,7 +27,7 @@ export default function Home() {
     fetch('https://hacker-news.firebaseio.com/v0/topstories.json')
       .then(res => res.json())
       .then(json => json as number[])
-      .then(ids => setStack([{ ids: ids.slice(0, 40), active: 0 }]));
+      .then(ids => setStack([{ ids, active: 0 }]));
   }, []);
 
   useEffect(() => {
@@ -67,40 +67,45 @@ export default function Home() {
     };
   }, [stack]);
 
-  const listElement = useRef<HTMLOListElement>(null);
-  const centerLastLevelList = useCallback((lastLevel: number) => {
+  const listContainerRef = useRef<HTMLOListElement>(null);
+  const lastLevelRef = useRef(stack.length - 1);
+  const centerLastList = useCallback(() => {
+    const lastLevel = lastLevelRef.current,
+      listContainer = listContainerRef.current!;
     if (lastLevel < 0) return;
-    const lastListElement = listElement.current?.children[lastLevel] as HTMLElement;
-    const { offsetWidth: lastListWidth } = lastListElement!;
-    const { offsetWidth: containerWidth } = listElement.current!;
-    const windowWidth = window.innerWidth;
-    const oldStyle = listElement.current?.getAttribute('style');
-    listElement.current?.setAttribute('style', `transition: left 0.2s; left: ${windowWidth - lastListWidth / 2 - containerWidth}px`);
+    const { offsetWidth: lastListWidth } = (listContainer.children[lastLevel] as HTMLElement)!,
+      { offsetWidth: containerWidth } = listContainer,
+      { innerWidth: windowWidth } = window;
+    const oldStyle = listContainer.getAttribute('style');
+    listContainer.setAttribute('style', `left: ${windowWidth - lastListWidth / 2 - containerWidth}px`);
     return () => {
-      oldStyle && listElement.current?.setAttribute('style', oldStyle);
+      oldStyle && listContainer.setAttribute('style', oldStyle);
     };
   }, []);
 
-  useEffect(() => centerLastLevelList(stack.length - 1), [stack.length]);
+  useEffect(() => {
+    lastLevelRef.current = stack.length - 1;
+    return centerLastList();
+  }, [stack.length]);
   useEffect(() => {
     const old = window.onresize;
     window.onresize = e => {
       old?.apply(window, [e]);
-      centerLastLevelList(stack.length - 1);
+      centerLastList();
     };
     return () => {
       window.onresize = old;
     };
-  }, [stack.length]);
+  }, []);
 
   if (stack.length === 0) return <div>Loading</div>;
   return (
     <QueryClientProvider client={queryClient}>
       <main className='h-screen w-screen overflow-hidden'>
-        <ol className='relative flex h-full w-fit gap-2' ref={listElement}>
-          {stack.map(({ ids, active }, index) => (
-            <li className='w-[500px] overflow-hidden border-x border-slate-400' key={index}>
-              <ItemList ids={ids} active={active} />
+        <ol className='relative flex h-full w-fit gap-2 transition-all' ref={listContainerRef}>
+          {stack.map((list, index) => (
+            <li className='w-[500px] overflow-hidden border-x border-slate-400 px-4' key={index}>
+              <ItemList {...list} />
             </li>
           ))}
         </ol>
@@ -109,40 +114,48 @@ export default function Home() {
   );
 }
 
-function ItemList({ ids, active }: { ids: number[]; active: number }) {
-  const listElement = useRef<HTMLUListElement>(null);
-  const centerActiveItem = useCallback((active: number) => {
-    const activeElement = listElement.current?.children[active] as HTMLElement;
-    const { offsetHeight, offsetTop } = activeElement!;
-    const windowHeight = window.innerHeight;
-    const oldStyle = listElement.current?.getAttribute('style');
-    listElement.current?.setAttribute('style', `transition: top 0.2s; top: ${windowHeight / 2 - offsetHeight / 2 - offsetTop}px`);
+const N_PREFETCH = 10;
+
+function ItemList({ ids, active }: IdList) {
+  const listRef = useRef<HTMLUListElement>(null);
+  const activeRef = useRef(active);
+  const centerActiveItem = useCallback(() => {
+    const list = listRef.current!;
+    const { offsetHeight, offsetTop } = (list.children[activeRef.current] as HTMLElement)!,
+      { innerHeight: windowHeight } = window;
+    const oldStyle = list.getAttribute('style');
+    list.setAttribute('style', `transition: top 0.2s; top: ${windowHeight / 2 - offsetHeight / 2 - offsetTop}px`);
     return () => {
-      oldStyle && listElement.current?.setAttribute('style', oldStyle);
+      oldStyle && list.setAttribute('style', oldStyle);
     };
   }, []);
 
   useEffect(() => {
-    centerActiveItem(active);
+    activeRef.current = active;
+    return centerActiveItem();
   }, [active]);
   useEffect(() => {
     const old = window.onresize;
     window.onresize = e => {
       old?.apply(window, [e]);
-      centerActiveItem(active);
+      centerActiveItem();
     };
     return () => {
       window.onresize = old;
     };
-  }, [active]);
+  }, []);
 
   return (
-    <ul className='relative flex flex-col gap-4' ref={listElement}>
-      {ids.map((id, index) => (
-        <li key={index} className={'group' + (index === active ? ' active' : '')}>
-          <Item id={id} />
-        </li>
-      ))}
+    <ul className='relative flex flex-col gap-4' ref={listRef}>
+      {ids.map((id, index) =>
+        active - N_PREFETCH < index && index < active + N_PREFETCH ? (
+          <li key={index} className={`group group-[.active]:scale-110 ${index === active ? 'active' : ''}`}>
+            <Item id={id} />
+          </li>
+        ) : (
+          <li key={index} />
+        ),
+      )}
     </ul>
   );
 }
@@ -194,7 +207,7 @@ function CommentItem({ comment }: { comment: Comment }) {
           )}
         </span>
       </div>
-      <div className='group-[.active]:text-xl' dangerouslySetInnerHTML={{ __html: text }} />
+      <div dangerouslySetInnerHTML={{ __html: text }} />
     </div>
   );
 }
