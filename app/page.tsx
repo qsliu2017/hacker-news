@@ -68,7 +68,7 @@ export default function Home() {
   }, [stack]);
 
   const listElement = useRef<HTMLOListElement>(null);
-  const centeralizeLastLevelList = useCallback((lastLevel: number) => {
+  const centerLastLevelList = useCallback((lastLevel: number) => {
     if (lastLevel < 0) return;
     const lastListElement = listElement.current?.children[lastLevel] as HTMLElement;
     const { offsetWidth: lastListWidth } = lastListElement!;
@@ -81,12 +81,12 @@ export default function Home() {
     };
   }, []);
 
-  useEffect(() => centeralizeLastLevelList(stack.length - 1), [stack.length]);
+  useEffect(() => centerLastLevelList(stack.length - 1), [stack.length]);
   useEffect(() => {
     const old = window.onresize;
     window.onresize = e => {
       old?.apply(window, [e]);
-      centeralizeLastLevelList(stack.length - 1);
+      centerLastLevelList(stack.length - 1);
     };
     return () => {
       window.onresize = old;
@@ -111,7 +111,7 @@ export default function Home() {
 
 function ItemList({ ids, active }: { ids: number[]; active: number }) {
   const listElement = useRef<HTMLUListElement>(null);
-  const centeralizeActiveItem = useCallback((active: number) => {
+  const centerActiveItem = useCallback((active: number) => {
     const activeElement = listElement.current?.children[active] as HTMLElement;
     const { offsetHeight, offsetTop } = activeElement!;
     const windowHeight = window.innerHeight;
@@ -123,18 +123,18 @@ function ItemList({ ids, active }: { ids: number[]; active: number }) {
   }, []);
 
   useEffect(() => {
-    centeralizeActiveItem(active);
+    centerActiveItem(active);
   }, [active]);
   useEffect(() => {
     const old = window.onresize;
     window.onresize = e => {
       old?.apply(window, [e]);
-      centeralizeActiveItem(active);
+      centerActiveItem(active);
     };
     return () => {
       window.onresize = old;
     };
-  }, []);
+  }, [active]);
 
   return (
     <ul className='relative flex flex-col gap-4' ref={listElement}>
@@ -165,14 +165,6 @@ function Item({ id }: { id: number }) {
 
 function StoryItem({ story }: { story: Story }) {
   const { url, title, time, kids } = story;
-  const unixTime = new Date(time * 1000);
-  const localeTime = unixTime.toLocaleString('en-US', {
-    month: '2-digit',
-    day: '2-digit',
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: false,
-  });
   return (
     <div className='flex justify-between group-[.active]:bg-slate-400'>
       <a
@@ -181,18 +173,50 @@ function StoryItem({ story }: { story: Story }) {
         href={url}
         dangerouslySetInnerHTML={{ __html: title }}
       />
-      <time className='flex-shrink-0' dateTime={unixTime.toISOString()}>
-        {localeTime}
-      </time>
+      <Time className='flex-shrink-0' time={time} />
     </div>
   );
 }
 
 function CommentItem({ comment }: { comment: Comment }) {
-  const { text, kids } = comment;
+  const { text, kids, time, by } = comment;
   return (
-    <div className='flex items-start gap-1 group-[.active]:bg-slate-400 group-[.active]:text-xl' style={{ transition: 'font-size 0.1s' }}>
-      <div dangerouslySetInnerHTML={{ __html: text }} />
+    <div className='flex flex-col gap-1 group-[.active]:bg-slate-400' style={{ transition: 'font-size 0.1s' }}>
+      <div className='flex justify-between'>
+        <span>@{by}</span>
+        <span>
+          <Time time={time} />
+          {kids?.length > 0 && (
+            <>
+              {' '}
+              | <span>{kids.length} reply</span>
+            </>
+          )}
+        </span>
+      </div>
+      <div className='group-[.active]:text-xl' dangerouslySetInnerHTML={{ __html: text }} />
     </div>
+  );
+}
+
+function Time({ time, ...props }: { time: number } & React.HTMLAttributes<HTMLTimeElement>) {
+  const unixTime = new Date(time * 1000);
+  const currentTime = new Date();
+  const diff = currentTime.getTime() - unixTime.getTime();
+  // transform to 'about x minutes ago', 'about y hours ago' or 'yy/mm/dd'
+  return (
+    <time dateTime={unixTime.toISOString()} {...props}>
+      {diff < 60 * 1000
+        ? 'just now'
+        : diff < 60 * 60 * 1000
+          ? `${Math.floor(diff / (60 * 1000))} minutes ago`
+          : diff < 24 * 60 * 60 * 1000
+            ? `${Math.floor(diff / (60 * 60 * 1000))} hours ago`
+            : unixTime.toLocaleString('zh-cn', {
+                year: currentTime.getFullYear() === unixTime.getFullYear() ? undefined : 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+              })}
+    </time>
   );
 }
