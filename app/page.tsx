@@ -37,6 +37,12 @@ export default function Home() {
       old?.apply(window, [e]);
       const { active, ids } = stack.at(-1)!;
       switch (e.key) {
+        case 'Enter': {
+          const id = ids[active];
+          const item = queryClient.getQueryData<Item>(itemKey(id));
+          if (item?.type === 'story' && item.url) window.open(item.url, '_blank');
+          break;
+        }
         case 'ArrowUp':
           setStack([...stack.slice(0, -1), { ids, active: Math.max(active - 1, 0) }]);
           break;
@@ -46,13 +52,14 @@ export default function Home() {
         case 'ArrowLeft':
           setStack([...stack.slice(0, 1), ...stack.slice(1, -1)]);
           break;
-        case 'ArrowRight':
+        case 'ArrowRight': {
           const id = ids[active];
           const item = queryClient.getQueryData<Item>(itemKey(id));
           if (item?.kids) {
             setStack([...stack, { ids: item.kids, active: 0 }]);
           }
           break;
+        }
       }
     };
     return () => {
