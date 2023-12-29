@@ -7,6 +7,7 @@ import { Comment, Item, Story, fetchAs } from './items';
 type IdList = {
   ids: number[];
   active: number;
+  maxReached: number;
 };
 
 const queryClient = new QueryClient();
@@ -27,7 +28,7 @@ export default function Home() {
     fetch('https://hacker-news.firebaseio.com/v0/topstories.json')
       .then(res => res.json())
       .then(json => json as number[])
-      .then(ids => setStack([{ ids, active: 0 }]));
+      .then(ids => setStack([{ ids, active: 0, maxReached: 0 }]));
   }, []);
 
   useEffect(() => {
@@ -35,7 +36,7 @@ export default function Home() {
     window.onkeydown = e => {
       e.preventDefault();
       old?.apply(window, [e]);
-      const { active, ids } = stack.at(-1)!;
+      const { active, ids, maxReached } = stack.at(-1)!;
       switch (e.key) {
         case 'Enter': {
           const id = ids[active];
@@ -44,10 +45,11 @@ export default function Home() {
           break;
         }
         case 'ArrowUp':
-          setStack([...stack.slice(0, -1), { ids, active: Math.max(active - 1, 0) }]);
+          setStack([...stack.slice(0, -1), { ids, active: Math.max(active - 1, 0), maxReached }]);
           break;
         case 'ArrowDown':
-          setStack([...stack.slice(0, -1), { ids, active: Math.min(active + 1, ids.length - 1) }]);
+          const active_ = Math.min(active + 1, ids.length - 1);
+          setStack([...stack.slice(0, -1), { ids, active: active_, maxReached: Math.max(maxReached, active_) }]);
           break;
         case 'ArrowLeft':
           setStack([...stack.slice(0, 1), ...stack.slice(1, -1)]);
@@ -56,7 +58,7 @@ export default function Home() {
           const id = ids[active];
           const item = queryClient.getQueryData<Item>(itemKey(id));
           if (item?.kids) {
-            setStack([...stack, { ids: item.kids, active: 0 }]);
+            setStack([...stack, { ids: item.kids, active: 0, maxReached: 0 }]);
           }
           break;
         }
@@ -116,7 +118,7 @@ export default function Home() {
 
 const N_PREFETCH = 10;
 
-function ItemList({ ids, active }: IdList) {
+function ItemList({ ids, active, maxReached }: IdList) {
   const listRef = useRef<HTMLUListElement>(null);
   const activeRef = useRef(active);
   const centerActiveItem = useCallback(() => {
@@ -148,7 +150,7 @@ function ItemList({ ids, active }: IdList) {
   return (
     <ul className='relative flex flex-col gap-4' ref={listRef}>
       {ids.map((id, index) =>
-        active - N_PREFETCH < index && index < active + N_PREFETCH ? (
+        index <= maxReached + N_PREFETCH ? (
           <li key={index} className={`group group-[.active]:scale-110 ${index === active ? 'active' : ''}`}>
             <Item id={id} />
           </li>
