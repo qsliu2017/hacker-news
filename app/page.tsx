@@ -2,7 +2,7 @@
 
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Comment, Item, Story, fetchAs } from './items';
+import { Comment, type Item, Story, fetchAs } from './items';
 
 type IdList = {
   ids: number[];
@@ -122,7 +122,8 @@ function ItemList({ ids, active, maxReached }: IdList) {
   const listRef = useRef<HTMLUListElement>(null);
   const activeRef = useRef(active);
   const centerActiveItem = useCallback(() => {
-    const list = listRef.current!;
+    const list = listRef.current;
+    if (!list) return;
     const { offsetHeight, offsetTop } = (list.children[activeRef.current] as HTMLElement)!,
       { innerHeight: windowHeight } = window;
     const oldStyle = list.getAttribute('style');
@@ -145,6 +146,12 @@ function ItemList({ ids, active, maxReached }: IdList) {
     return () => {
       window.onresize = old;
     };
+  }, []);
+  useEffect(() => {
+    const list = listRef.current;
+    if (!list) return;
+    const resizeObserver = new ResizeObserver(centerActiveItem);
+    resizeObserver.observe(list);
   }, []);
 
   return (
