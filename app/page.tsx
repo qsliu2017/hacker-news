@@ -75,11 +75,10 @@ export default function Home() {
     const lastLevel = lastLevelRef.current,
       listContainer = listContainerRef.current!;
     if (lastLevel < 0) return;
-    const { offsetWidth: lastListWidth } = (listContainer.children[lastLevel] as HTMLElement)!,
-      { offsetWidth: containerWidth } = listContainer,
+    const { offsetWidth: containerWidth } = listContainer,
       { innerWidth: windowWidth } = window;
     const oldStyle = listContainer.getAttribute('style');
-    listContainer.setAttribute('style', `left: ${windowWidth - lastListWidth / 2 - containerWidth}px`);
+    listContainer.setAttribute('style', `left: ${windowWidth - containerWidth - /* gap-2 = */ 8}px`);
     return () => {
       oldStyle && listContainer.setAttribute('style', oldStyle);
     };
@@ -180,8 +179,7 @@ function Item({ id }: { id: number }) {
     case 'comment':
       return <CommentItem comment={item} />;
     default:
-      const { by, time, type } = item;
-      return <span className='group-[.active]:bg-slate-400'>{`${type} by ${by} at ${time}`}</span>;
+      return <span className='group-[.active]:bg-slate-400'>{JSON.stringify(item, undefined, 2)}</span>;
   }
 }
 
