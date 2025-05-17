@@ -4,23 +4,17 @@ import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-quer
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Comment, type Item, Story, fetchAs } from './items';
 
-type IdList = {
-  ids: number[];
-  active: number;
-  maxReached: number;
-};
+type IdList = { ids: number[]; active: number; maxReached: number };
 
 const queryClient = new QueryClient();
 
 const itemKey = (id: number) => [{ id }];
 
 function itemOptions<T>(id: number) {
-  return {
-    queryKey: itemKey(id),
-    queryFn: () => fetchAs<T>(id),
-    staleTime: Infinity,
-  };
+  return { queryKey: itemKey(id), queryFn: () => fetchAs<T>(id), staleTime: Infinity };
 }
+
+const shortcutKeys = new Set(['Enter', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
 
 export default function Home() {
   const [stack, setStack] = useState<IdList[]>([]);
@@ -34,8 +28,10 @@ export default function Home() {
   useEffect(() => {
     const old = window.onkeydown;
     window.onkeydown = e => {
+      if (!shortcutKeys.has(e.key)) {
+        return old?.apply(window, [e]);
+      }
       e.preventDefault();
-      old?.apply(window, [e]);
       const { active, ids, maxReached } = stack.at(-1)!;
       switch (e.key) {
         case 'Enter': {
@@ -184,7 +180,7 @@ function Item({ id }: { id: number }) {
 }
 
 function StoryItem({ story }: { story: Story }) {
-  const { url, title, time, kids } = story;
+  const { url, title, time } = story;
   return (
     <div className='flex justify-between group-[.active]:bg-slate-400'>
       <a
@@ -201,7 +197,7 @@ function StoryItem({ story }: { story: Story }) {
 function CommentItem({ comment }: { comment: Comment }) {
   const { text, kids, time, by } = comment;
   return (
-    <div className='flex flex-col gap-1 group-[.active]:bg-slate-400' style={{ transition: 'font-size 0.1s' }}>
+    <div className='comment flex flex-col gap-1 group-[.active]:bg-slate-400' style={{ transition: 'font-size 0.1s' }}>
       <div className='flex justify-between'>
         <span>@{by}</span>
         <span>
