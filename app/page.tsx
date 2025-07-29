@@ -3,14 +3,15 @@
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { HackerNewsTopStoriesItem } from './hackernews';
-import { Item as IItem } from './types';
+import { Item } from './types';
+import { RssSourceItem } from './rss';
 
 const shortcutKeys = new Set(['Enter', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
 
 const queryClient = new QueryClient();
 
 type Column = {
-  items: IItem[];
+  items: Item[];
   active: number;
   maxReached: number;
 };
@@ -18,7 +19,7 @@ type Column = {
 export default function Home() {
   const [stack, setStack] = useState<Column[]>([
     {
-      items: [HackerNewsTopStoriesItem],
+      items: [HackerNewsTopStoriesItem, new RssSourceItem('Neon', 'https://neon.com/blog/rss.xml')],
       active: 0,
       maxReached: 0,
     },
