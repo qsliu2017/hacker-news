@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/reac
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { HackerNewsTopStoriesItem } from './hackernews';
 import { Item } from './types';
-import { RssSourceItem } from './rss';
+import { MixedRssSourceItem, RssSourceItem } from './rss';
 
 const shortcutKeys = new Set(['Enter', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
 
@@ -16,10 +16,21 @@ type Column = {
   maxReached: number;
 };
 
+function crosproxy(url: string) {
+  return `https://corsproxy.io/?url=${url}`;
+}
+
 export default function Home() {
   const [stack, setStack] = useState<Column[]>([
     {
-      items: [HackerNewsTopStoriesItem, new RssSourceItem('Neon', 'https://neon.com/blog/rss.xml')],
+      items: [
+        HackerNewsTopStoriesItem,
+        new RssSourceItem('Neon', 'https://neon.com/blog/rss.xml'),
+        new MixedRssSourceItem('rust', [
+          'https://blog.rust-lang.org/feed.xml',
+          crosproxy('https://research.swtch.com/feed.atom')
+        ]),
+      ],
       active: 0,
       maxReached: 0,
     },

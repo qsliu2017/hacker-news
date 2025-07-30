@@ -55,11 +55,8 @@ export const HackerNewsTopStoriesItem: Item = {
   async expand(queryClient: QueryClient) {
     const ids = await queryClient.fetchQuery({
       queryKey: ['hackernews', 'topstories'],
-      queryFn: async () => {
-        const res = await fetch(`https://hacker-news.firebaseio.com/v0/topstories.json`);
-        const json = await res.json();
-        return json as number[];
-      },
+      queryFn: () =>
+        fetch(`https://hacker-news.firebaseio.com/v0/topstories.json`).then(res => res.json()).then(res => res as number[]),
       staleTime: 10 * 60 * 1000, // 10 minutes
     });
     return ids.map(id => new HackerNewsItem(id));
@@ -87,7 +84,7 @@ function itemKey(id: number) {
 
 class HackerNewsItem implements Item {
   private item: Story | Comment | null = null;
-  constructor(private id: number) {}
+  constructor(private id: number) { }
 
   url() {
     return `https://hacker-news.firebaseio.com/v0/item/${this.id}.json`;
@@ -168,10 +165,10 @@ function Time({ time, ...props }: { time: number } & React.HTMLAttributes<HTMLTi
           : diff < 24 * 60 * 60 * 1000
             ? `${Math.floor(diff / (60 * 60 * 1000))} hours ago`
             : unixTime.toLocaleString('zh-cn', {
-                year: currentTime.getFullYear() === unixTime.getFullYear() ? undefined : 'numeric',
-                month: '2-digit',
-                day: '2-digit',
-              })}
+              year: currentTime.getFullYear() === unixTime.getFullYear() ? undefined : 'numeric',
+              month: '2-digit',
+              day: '2-digit',
+            })}
     </time>
   );
 }
