@@ -48,9 +48,7 @@ type Comment = {
 };
 
 export const HackerNewsTopStoriesItem: Item = {
-  url() {
-    return `https://hacker-news.firebaseio.com/v0/topstories.json`;
-  },
+  url: () => 'https://news.ycombinator.com/news',
 
   async expand(queryClient: QueryClient) {
     const ids = await queryClient.fetchQuery({
@@ -86,9 +84,7 @@ class HackerNewsItem implements Item {
   private item: Story | Comment | null = null;
   constructor(private id: number) { }
 
-  url() {
-    return `https://hacker-news.firebaseio.com/v0/item/${this.id}.json`;
-  }
+  url = () => `https://news.ycombinator.com/item?id=${this.id}`;
 
   async expand(queryClient: QueryClient) {
     this.item = await queryClient.fetchQuery(itemKey(this.id));
