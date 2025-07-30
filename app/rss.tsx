@@ -14,12 +14,11 @@ export class RssSourceItem implements Item {
   async expand(queryClient: QueryClient) {
     const res = await queryClient.fetchQuery({
       queryKey: ['rss', this.feedUrl],
-      queryFn: () => fetch(this.feedUrl),
+      queryFn: () => fetch(this.feedUrl).then(res => res.text()),
       staleTime: 1000 * 60 * 60, // 1 hour
     });
-    const xml = await res.text();
     const parser = new DOMParser();
-    const doc = parser.parseFromString(xml, 'application/xml');
+    const doc = parser.parseFromString(res, 'application/xml');
     const items = doc.querySelectorAll('item');
     return Array.from(items).map(
       item =>
