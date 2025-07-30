@@ -3,9 +3,9 @@ import { QueryClient } from '@tanstack/react-query';
 
 /**
  * A source item that combines multiple RSS feeds into a single feed. Children are ordered by date.
- * 
+ *
  * This is useful for combining multiple feeds into a single feed, such as a blog that has multiple authors.
- * 
+ *
  * @param title - The title of the source item.
  * @param feedUrls - The URLs of the RSS feeds to combine.
  */
@@ -13,18 +13,14 @@ export class MixedRssSourceItem implements Item {
   constructor(
     private title: string,
     private feedUrls: string[],
-  ) { }
+  ) {}
 
   async expand(queryClient: QueryClient) {
-    const items = await Promise.all(this.feedUrls.map(async url => {
-      const res = await queryClient.fetchQuery({
-        queryKey: ['rss', url],
-        queryFn: () => fetch(url).then(res => res.text()),
-        staleTime: 1000 * 60 * 60, // 1 hour
-      });
-      return parseRssText(res);
-    }));
-    return items.flat().filter(item => item.date() !== undefined).sort((a, b) => b.date()!.getTime() - a.date()!.getTime());
+    const items = await Promise.all(this.feedUrls.map(url => fetchAndParseRssSource(queryClient, url)));
+    return items
+      .flat()
+      .filter(item => item.date() !== undefined)
+      .sort((a, b) => b.date()!.getTime() - a.date()!.getTime());
   }
 
   render() {
@@ -36,19 +32,14 @@ export class RssSourceItem implements Item {
   constructor(
     private title: string,
     private feedUrl: string,
-  ) { }
+  ) {}
 
   url() {
     return this.feedUrl;
   }
 
-  async expand(queryClient: QueryClient) {
-    const res = await queryClient.fetchQuery({
-      queryKey: ['rss', this.feedUrl],
-      queryFn: () => fetch(this.feedUrl).then(res => res.text()),
-      staleTime: 1000 * 60 * 60, // 1 hour
-    });
-    return parseRssText(res);
+  expand(queryClient: QueryClient) {
+    return fetchAndParseRssSource(queryClient, this.feedUrl);
   }
 
   render() {
@@ -61,7 +52,7 @@ class RssItem implements Item {
     private title: string,
     private link: string,
     private pubDate?: string,
-  ) { }
+  ) {}
 
   url() {
     return this.link;
@@ -84,6 +75,17 @@ class RssItem implements Item {
   date() {
     return this.pubDate ? new Date(this.pubDate) : undefined;
   }
+}
+
+function fetchAndParseRssSource(queryClient: QueryClient, url: string) {
+  return queryClient.fetchQuery({
+    queryKey: ['rss', url],
+    queryFn: () =>
+      fetch(url)
+        .then(res => res.text())
+        .then(parseRssText),
+    staleTime: 1000 * 60 * 60, // 1 hour
+  });
 }
 
 function parseRssText(text: string) {
@@ -114,22 +116,15 @@ function parseRssText(text: string) {
         return linkElement?.getAttribute('href') || linkElement?.textContent || '';
       },
       getDate: (item: Element) => {
-        return item.querySelector('published')?.textContent ||
-          item.querySelector('updated')?.textContent || undefined;
+        return item.querySelector('published')?.textContent || item.querySelector('updated')?.textContent || undefined;
       },
-    }
+    },
   };
 
   const feedParser = isAtom ? parsers.atom : parsers.rss;
   const items = doc.querySelectorAll(feedParser.itemSelector);
 
-  return Array.from(items).map(item =>
-    new RssItem(
-      feedParser.getTitle(item),
-      feedParser.getLink(item),
-      feedParser.getDate(item),
-    ),
-  );
+  return Array.from(items).map(item => new RssItem(feedParser.getTitle(item), feedParser.getLink(item), feedParser.getDate(item)));
 }
 
 function parseRssDate(dateString: string): string {
